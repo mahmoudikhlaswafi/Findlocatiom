@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Location Tracker</title>
+</head>
+<body>
+<h2>Location Tracker Running...</h2>
+
+<script>
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwuMbNs8iVvPfLM78vY8OSHn16f5z2RmdUbudatwZNKxC5dszDA8ukONYgdehrnqOKC/exec";
+
+function sendLocation(position) {
+  const data = {
+    latitude: position.coords.latitude,
+    longitude: position.coords.longitude,
+    accuracy: position.coords.accuracy
+  };
+
+  fetch(SCRIPT_URL, {
+    method: "POST",
+    body: JSON.stringify(data),
+    headers: {
+      "Content-Type": "application/json"
+    }
+  })
+  .then(res => res.text())
+  .then(console.log)
+  .catch(console.error);
+}
+
+function error(err) {
+  console.error("Location error:", err);
+}
+
+function getLocation() {
+  navigator.geolocation.getCurrentPosition(
+    sendLocation,
+    error,
+    { enableHighAccuracy: true }
+  );
+}
+
+// Run immediately
+getLocation();
+
+// Run every 10 minutes (600000 ms)
+setInterval(getLocation, 600000);
+</script>
+
+</body>
+</html>

